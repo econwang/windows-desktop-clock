@@ -1,0 +1,41 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  Build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Compile
+        shell: cmd
+        run: |
+          pip install wheel
+          pip install -r requirements.txt
+          set /P B_Version=< version
+          python -m nuitka --standalone --lto=yes --windows-disable-console --static-libpython=no --plugin-enable=tk-inter --windows-icon-from-ico=logo.ico --windows-product-name=Destop-Clock --windows-company-name=ECONWANG --windows-product-version=%B_Version%.0 --windows-file-description=Desktop-Clock --include-data-dir=settings=settings --output-dir=build --assume-yes-for-downloads desktop-clock.py
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: desktop-clock
+          path: build/desktop-clock.dist/
+
+  Release:
+    needs: [Build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: desktop-clock
+          path: ${{github.ref_name}}
+      - name: Pack Binary
+        run: |
+          mkdir assets
+          zip -r assets/desktop-clock-windows-x64.zip ${{github.ref_name}}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            assets/*
+          fail_on_unmatched_files: true
