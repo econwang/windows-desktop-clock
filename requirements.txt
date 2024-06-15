@@ -1,2 +1,2 @@
-pysimplegui
+pysimplegui==4.60.5
 nuitka
